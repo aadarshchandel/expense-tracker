@@ -1,0 +1,1 @@
+from app import Handler  # noqa: E402,F401
