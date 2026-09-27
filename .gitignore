@@ -1,3 +1,5 @@
+# Ignore all node_modules at any depth
+**/node_modules/
 # Python
 __pycache__/
 *.py[cod]
