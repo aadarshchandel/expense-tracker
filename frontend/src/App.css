@@ -214,3 +214,75 @@ body {
     font-size: 1.7rem;
   }
 }
+/* ---- Currency Switcher ---- */
+.currency-switcher {
+  display: inline-flex;
+  gap: 8px;
+  margin-top: 16px;
+  background: rgba(255, 255, 255, 0.15);
+  padding: 6px;
+  border-radius: 999px;
+  backdrop-filter: blur(10px);
+}
+
+.currency-btn {
+  border: none;
+  background: transparent;
+  color: #fff;
+  padding: 8px 18px;
+  border-radius: 999px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.currency-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.currency-btn.active {
+  background: #fff;
+  color: #4f46e5;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+/* ---- Currency Switcher ---- */
+.currency-switcher {
+  display: inline-flex;
+  gap: 8px;
+  margin-top: 16px;
+  background: rgba(255, 255, 255, 0.15);
+  padding: 6px;
+  border-radius: 999px;
+  backdrop-filter: blur(10px);
+}
+
+.currency-btn {
+  border: none;
+  background: transparent;
+  color: #fff;
+  padding: 8px 18px;
+  border-radius: 999px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.currency-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.currency-btn.active {
+  background: #fff;
+  color: #4f46e5;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* ---- Rate Info ---- */
+.rate-info {
+  margin-top: 10px;
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.8);
+  letter-spacing: 0.02em;
+}
