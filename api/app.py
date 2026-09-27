@@ -3,13 +3,62 @@ import os
 from datetime import datetime
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from urllib.parse import urlparse
+from urllib.request import Request, urlopen
+from urllib.error import URLError
 
-# Store file next to this script
 DATA_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "expenses.json")
 
+UPSTASH_URL = os.environ.get("UPSTASH_REDIS_REST_URL")
+UPSTASH_TOKEN = os.environ.get("UPSTASH_REDIS_REST_TOKEN")
+USE_REDIS = bool(UPSTASH_URL and UPSTASH_TOKEN)
 
-# ---------- Storage Helpers ----------
+REDIS_KEY = "expenses_list"
+
+
+# ---------- Upstash Redis Helpers ----------
+def redis_command(*args):
+    """Send a command to Upstash Redis REST API."""
+    url = f"{UPSTASH_URL}/{'/'.join(str(a) for a in args)}"
+    req = Request(url, headers={"Authorization": f"Bearer {UPSTASH_TOKEN}"})
+    with urlopen(req, timeout=5) as resp:
+        return json.loads(resp.read().decode("utf-8"))
+
+
+def redis_get_expenses():
+    try:
+        result = redis_command("GET", REDIS_KEY)
+        raw = result.get("result")
+        if not raw:
+            return []
+        return json.loads(raw)
+    except (URLError, json.JSONDecodeError, KeyError):
+        return []
+
+
+def redis_set_expenses(expenses):
+    try:
+        payload = json.dumps(expenses)
+        url = UPSTASH_URL
+        body = json.dumps(["SET", REDIS_KEY, payload]).encode("utf-8")
+        req = Request(
+            url,
+            data=body,
+            headers={
+                "Authorization": f"Bearer {UPSTASH_TOKEN}",
+                "Content-Type": "application/json",
+            },
+            method="POST",
+        )
+        with urlopen(req, timeout=5) as resp:
+            return resp.status == 200
+    except URLError:
+        return False
+
+
+# ---------- Storage Helpers (Redis if available, else JSON file) ----------
 def load_expenses():
+    if USE_REDIS:
+        return redis_get_expenses()
     if not os.path.exists(DATA_FILE):
         return []
     try:
@@ -20,11 +69,14 @@ def load_expenses():
 
 
 def save_expenses(expenses):
+    if USE_REDIS:
+        return redis_set_expenses(expenses)
     try:
         with open(DATA_FILE, "w") as f:
             json.dump(expenses, f, indent=2)
+        return True
     except IOError:
-        pass  # Vercel filesystem is read-only
+        return False
 
 
 # ---------- Core Handlers ----------
@@ -52,7 +104,9 @@ def add_expense(payload):
         "created_at": datetime.utcnow().isoformat(),
     }
     expenses.append(item)
-    save_expenses(expenses)
+    ok = save_expenses(expenses)
+    if not ok and USE_REDIS:
+        return {"status": "error", "message": "Failed to save to Redis"}
     return {"status": "ok", "data": item}
 
 
@@ -61,7 +115,9 @@ def delete_expense(expense_id):
     filtered = [e for e in expenses if e["id"] != expense_id]
     if len(filtered) == len(expenses):
         return {"status": "error", "message": "Not found"}
-    save_expenses(filtered)
+    ok = save_expenses(filtered)
+    if not ok and USE_REDIS:
+        return {"status": "error", "message": "Failed to save to Redis"}
     return {"status": "ok", "message": "Deleted"}
 
 
@@ -91,7 +147,11 @@ class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         path = urlparse(self.path).path.rstrip("/")
         if path in ("", "/", "/api"):
-            self._send(200, {"message": "Expense Tracker API", "status": "ok"})
+            self._send(200, {
+                "message": "Expense Tracker API",
+                "storage": "redis" if USE_REDIS else "file",
+                "status": "ok",
+            })
         elif path == "/api/expenses":
             self._send(200, get_all())
         elif path.startswith("/api/expenses/"):
@@ -136,7 +196,9 @@ class Handler(BaseHTTPRequestHandler):
 # ---------- Local Entry Point ----------
 def run_server(port=8000):
     server = HTTPServer(("0.0.0.0", port), Handler)
+    storage = "Redis ☁️" if USE_REDIS else "Local JSON 📁"
     print(f"🚀 Backend running at http://localhost:{port}")
+    print(f"💾 Storage: {storage}\n")
     server.serve_forever()
 
 
