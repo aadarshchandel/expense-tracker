@@ -8,8 +8,8 @@ from urllib.error import URLError
 
 DATA_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "expenses.json")
 
-UPSTASH_URL = os.environ.get("UPSTASH_REDIS_REST_URL")
-UPSTASH_TOKEN = os.environ.get("UPSTASH_REDIS_REST_TOKEN")
+UPSTASH_URL = os.environ.get("UPSTASH_URL_V2")
+UPSTASH_TOKEN = os.environ.get("UPSTASH_TOKEN_V2")
 USE_REDIS = bool(UPSTASH_URL and UPSTASH_TOKEN)
 
 REDIS_KEY = "expenses_list"
